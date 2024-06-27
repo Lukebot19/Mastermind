@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mastermind/bloc/game_bloc.dart';
+import 'package:mastermind/enums/guesser.dart';
 import 'package:mastermind/enums/mode.dart';
+import 'package:mastermind/pages/choose_code.dart';
 
 class GamePage extends StatefulWidget {
   final GameMode mode;
@@ -8,16 +12,9 @@ class GamePage extends StatefulWidget {
 
   @override
   _GamePageState createState() => _GamePageState();
-
-
 }
 
 class _GamePageState extends State<GamePage> {
-  List<List<int>> guesses = []; // Each guess is a list of color indices
-  List<int> currentGuess = []; // Current guess being input by the user
-  List<List<int>> feedback =
-      []; // Feedback for each guess (0: wrong, 1: right color wrong place, 2: right color right place)
-
   final List<Color> colorPalette = [
     Colors.red,
     Colors.green,
@@ -26,96 +23,264 @@ class _GamePageState extends State<GamePage> {
     Colors.purple,
   ];
 
-  void addGuess() {
-    if (currentGuess.length == 4) {
-      // Ensure the guess is complete
-      setState(() {
-        guesses.add(List.from(currentGuess));
-        currentGuess.clear();
-        // Here, you would also calculate the feedback for the guess and add it to the feedback list
-        // For now, we'll just add dummy feedback
-        feedback.add([0, 1, 2, 1]); // Dummy feedback, replace with actual logic
-      });
-    }
-  }
+  final List<Color> feedbackColours = [
+    Colors.black,
+    Colors.white,
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Mastermind'),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: guesses.length + 1, // +1 for the current guess
-              itemBuilder: (context, index) {
-                if (index < guesses.length) {
-                  // Display previous guesses and feedback
-                  return Row(
-                    children: [
-                      ...guesses[index].map((colorIndex) => CircleAvatar(
-                          backgroundColor: colorPalette[colorIndex])),
-                      SizedBox(width: 10),
-                      ...feedback[index].map((f) => Icon(
-                          f == 2
-                              ? Icons.check
-                              : (f == 1 ? Icons.swap_horiz : Icons.close),
-                          size: 16)),
-                    ],
-                  );
-                } else {
-                  // Display the current guess input
-                  return Row(
-                    children: [
-                      ...List.generate(
-                          4,
-                          (i) => CircleAvatar(
-                                backgroundColor: i < currentGuess.length
-                                    ? colorPalette[currentGuess[i]]
-                                    : Colors.grey,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    // Allow tapping on the current guess to change colors
-                                  },
-                                ),
-                              )),
-                    ],
-                  );
-                }
-              },
-            ),
-          ),
-          Container(
-            height: 80,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: colorPalette.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    if (currentGuess.length < 4) {
-                      setState(() {
-                        currentGuess.add(index);
-                      });
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: CircleAvatar(
-                      backgroundColor: colorPalette[index],
-                    ),
+    return BlocListener<GameBloc, GameState>(
+      listener: (context, state) {
+        if (state.switchPlayers) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ColorLockPage()),
+          ).then((value) {
+            // Schedule the ComputerTurnEvent to be dispatched after the widget build is complete
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              context.read<GameBloc>().add(ComputerTurnEvent());
+            });
+          });
+          // Reset the switchPlayers flag
+          context.read<GameBloc>().add(SetSwitchPlayers());
+        }
+      },
+      child: BlocBuilder<GameBloc, GameState>(
+        builder: (context, state) {
+          return SafeArea(
+            child: Scaffold(
+              backgroundColor: Colors.grey,
+              body: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Container(
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                    color: Color.fromRGBO(109, 148, 227, 1),
                   ),
-                );
-              },
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: state.guesses.length +
+                              1, // +1 for the current guess
+                          itemBuilder: (context, index) {
+                            if (index < state.guesses.length) {
+                              // Display previous guesses and feedback
+                              return Column(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 5.0),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        Text(index.toString(),
+                                            style: TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 26)),
+                                        SizedBox(width: 10),
+                                        ...state.guesses[index].map(
+                                          (colorIndex) => Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 4.0),
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: Colors
+                                                      .black, // Set your desired border color here
+                                                  width:
+                                                      2, // Set your desired border width here
+                                                ),
+                                              ),
+                                              child: CircleAvatar(
+                                                backgroundColor:
+                                                    colorPalette[colorIndex],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 10),
+                                        SizedBox(
+                                          // Add a SizedBox to provide bounded constraints
+                                          height: 40, // Keep the height as is
+                                          width:
+                                              72, // Specify the width, adjust this value as needed
+                                          child: GridView.count(
+                                            crossAxisCount: 2,
+                                            childAspectRatio:
+                                                2, // Adjusted to make the height half of the width
+                                            mainAxisSpacing:
+                                                4, // Spacing between rows
+                                            crossAxisSpacing:
+                                                1, // Spacing between columns
+                                            physics:
+                                                NeverScrollableScrollPhysics(), // To disable GridView's scrolling
+                                            children: state.feedback[index]
+                                                .map((f) => Container(
+                                                      decoration: BoxDecoration(
+                                                        border: Border.all(
+                                                          color: Colors
+                                                              .black, // Set your desired border color here
+                                                          width:
+                                                              2, // Set your desired border width here
+                                                        ),
+                                                        color: f == 2
+                                                            ? Colors.black
+                                                            : (f == 1
+                                                                ? Colors.white
+                                                                : Colors.grey),
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                    ))
+                                                .toList(), // Convert the iterable to a list for the GridView
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Divider(
+                                    height: 5,
+                                  )
+                                ],
+                              );
+                            } else {
+                              // Display the current guess input
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 5.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    Text(index.toString(),
+                                        style: TextStyle(
+                                            color: Colors.black, fontSize: 26)),
+                                    SizedBox(
+                                        width:
+                                            10), // Add some spacing between the index and the guess
+                                    ...List.generate(
+                                      4,
+                                      (i) => Container(
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors
+                                                .black, // Set your desired border color here
+                                            width:
+                                                2, // Set your desired border width here
+                                          ),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4.0),
+                                          child: CircleAvatar(
+                                            backgroundColor: i <
+                                                        state.currentGuess
+                                                            .length &&
+                                                    state.currentGuess[i] != -1
+                                                ? colorPalette[
+                                                    state.currentGuess[i]]
+                                                : Colors
+                                                    .grey, // Use grey if the colour is removed or not yet guessed
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                // Tapping removes the color from the guess
+                                                context.read<GameBloc>().add(
+                                                    RemoveColourFromGuess(i));
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 82),
+                                  ],
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      if (state.guesser == Guesser.player2 &&
+                          state.mode != GameMode.computer)
+                        Container(
+                          height: 80,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: feedbackColours.length,
+                            itemBuilder: (context, index) {
+                              return GestureDetector(
+                                onTap: () {
+                                  context
+                                      .read<GameBloc>()
+                                      .add(AddColourToFeedback(index));
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: CircleAvatar(
+                                    backgroundColor: feedbackColours[index],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      if (state.guesser == Guesser.player1)
+                        Container(
+                          height: 80,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: colorPalette.length,
+                            itemBuilder: (context, index) {
+                              return GestureDetector(
+                                onTap: () {
+                                  context
+                                      .read<GameBloc>()
+                                      .add(AddColourToGuess(index));
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: CircleAvatar(
+                                    backgroundColor: colorPalette[index],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      if (state.mode != GameMode.computer &&
+                          state.guesser == Guesser.player1)
+                        ElevatedButton(
+                            onPressed: () {
+                              context.read<GameBloc>().add(SubmitGuess());
+                            },
+                            child: Text('Confirm Guess')),
+                      if (state.mode != GameMode.computer &&
+                          state.guesser == Guesser.player2)
+                        ElevatedButton(
+                            onPressed: () {
+                              context.read<GameBloc>().add(SubmitGuess());
+                            },
+                            child: Text('Confirm Feeback')),
+                      if (state.mode == GameMode.computer &&
+                          state.guesser == Guesser.player1)
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<GameBloc>().add(SubmitGuess());
+                          },
+                          child: Text('Confirm Guess'),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: addGuess,
-            child: Text('Confirm Guess'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

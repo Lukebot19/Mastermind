@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mastermind/bloc/game_bloc.dart';
+import 'package:mastermind/pages/choose_code.dart';
 
 import 'package:mastermind/pages/mode_selection.dart';
 
@@ -11,8 +14,12 @@ class MastermindApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: ModeSelectionPage(),
+    return BlocProvider(
+      create: (context) => GameBloc(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: ModeSelectionPage(),
+      ),
     );
   }
 }
