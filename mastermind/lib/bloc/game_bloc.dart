@@ -19,7 +19,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   GameBloc() : super(GameState()) {
     on<ComputerTurnEvent>((event, emit) async {
       // Implement the logic for the computer's turn
-      var computerGuess = await solveMastermind(emit);
+      try {
+        var computerGuess = await solveMastermind(emit);
+      } catch (e) {
+        print(e);
+      }
     });
 
     on<SetCode>((event, emit) {
@@ -130,6 +134,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           emit(state.copyWith(
             guesses: [],
             currentGuess: [],
+            feedback: [],
+            currentFeedback: [],
             guesser: newGuesser,
             switchPlayers: true,
           ));
@@ -211,7 +217,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     }
 
     // Randomise the order of the feedback
-    feedback.shuffle();
+    // feedback.shuffle();
 
     return feedback;
   }
@@ -225,7 +231,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
   List<List<int>> candidateSolutions = [];
   List<List<int>> nextGuesses = [];
   List<int> currentGuess = [];
-  List<List<int>> currentFeedback = [[]];
+  List<List<int>> currentFeedback = [];
   String responsePegs = '';
   bool won = false;
   int turn = 1;
@@ -234,9 +240,28 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     turn = 1;
     won = false;
 
-    currentGuess = [1, 1, 2, 2]; // 1122
+    // Generate a random solution, a list of 4 numbers ranging from 0 to 4
+    currentGuess = List.generate(4, (index) => Random().nextInt(5));
 
-    emit(state.copyWith(guesses: [currentGuess], currentGuess: []));
+    emit(state.copyWith(currentGuess: List.from(currentGuess)));
+    String stringFeedback = checkCode(currentGuess, state.solution);
+
+    try {
+      currentFeedback.add(convertFeedback(stringFeedback));
+    } catch (e) {
+      print(e);
+      return;
+    }
+
+    await Future.delayed(Duration(milliseconds: 500), () {});
+
+    emit(
+      state.copyWith(
+        guesses: [currentGuess],
+        currentGuess: [],
+        feedback: currentFeedback,
+      ),
+    );
 
     await Future.delayed(Duration(seconds: 1), () {});
 
@@ -252,44 +277,25 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       // Play the guess to get a response of colored and white pegs
       responsePegs = checkCode(currentGuess, state.solution);
 
-      
-
-      // for each w add a 1 and for each b add a 2
-      for (int i = 0; i < responsePegs.length; i++) {
-        if (responsePegs[i] == 'W') {
-          currentFeedback.last.add(1);
-        } else if (responsePegs[i] == 'B') {
-          currentFeedback.last.add(2);
-        }
-      }
-
-      // fill to a length of 4
-      while (currentFeedback.last.length < 4) {
-        currentFeedback.last.add(0);
-      }
-
-      currentFeedback.add([]);
-
-      emit(state.copyWith(feedback: currentFeedback, currentFeedback: []));
-      await Future.delayed(Duration(milliseconds: 500), () {});
-
-      print('Turn: $turn');
-      print('Guess: ${currentGuess.join(' ')} = $responsePegs');
-
       // If the response is four colored pegs, the game is won
       if (responsePegs == 'BBBB') {
         emit(state.copyWith(
             currentGuess: currentGuess, currentFeedback: [2, 2, 2, 2]));
         won = true;
         print('Game Won!');
-        break;
+        return;
       }
 
       // Remove from candidateSolutions, any code that would not give the same response if it were the code
       pruneCodes(candidateSolutions, currentGuess, responsePegs);
 
       // Calculate Minmax scores
-      nextGuesses = minmax();
+      try {
+        nextGuesses = minmax();
+      } catch (e) {
+        print(e);
+        return;
+      }
 
       // Select next guess
       currentGuess = getNextGuess(nextGuesses);
@@ -297,29 +303,22 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       List<List<int>> newGuesses = List.from(state.guesses);
       newGuesses.add(List.from(currentGuess));
 
-      emit(state.copyWith(guesses: newGuesses, currentGuess: []));
+      // Play the guess to get a response of colored and white pegs
+      responsePegs = checkCode(currentGuess, state.solution);
 
+      currentFeedback.add(convertFeedback(responsePegs));
+
+      emit(state.copyWith(
+          guesses: newGuesses, currentGuess: [], feedback: currentFeedback));
       await Future.delayed(Duration(seconds: 1), () {});
 
       turn++;
     }
   }
 
-  List<int> getRandomCode() {
-    List<int> code = [];
-    Random rand = Random();
-
-    for (int i = 0; i < 4; i++) {
-      int random = 1 + rand.nextInt(5);
-      code.add(random);
-    }
-
-    return code;
-  }
-
   void createSet() {
     List<int> current = List.filled(4, 0);
-    List<int> elements = List.generate(4, (i) => i);
+    List<int> elements = List.generate(5, (i) => i);
 
     combinationRecursive(4, 0, current, elements);
   }
@@ -365,6 +364,30 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     return result;
   }
 
+  List<int> convertFeedback(String feedback) {
+    try {
+      List<int> convertedFeedback = [];
+      // for each w add a 1 and for each b add a 2
+      for (int i = 0; i < feedback.length; i++) {
+        if (feedback[i] == 'W') {
+          convertedFeedback.add(1);
+        } else if (feedback[i] == 'B') {
+          convertedFeedback.add(2);
+        }
+      }
+
+      // fill to a length of 4
+      while (convertedFeedback.length < 4) {
+        convertedFeedback.add(0);
+      }
+
+      return convertedFeedback;
+    } catch (e) {
+      print(e);
+      return [];
+    }
+  }
+
   void removeCode(List<List<int>> set, List<int> currentCode) {
     set.remove(currentCode);
   }
@@ -378,7 +401,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     Map<String, int> scoreCount = {};
     Map<List<int>, int> score = {};
     List<List<int>> nextGuesses = [];
-    int _max, _min;
+    int? _max, _min;
 
     for (List<int> combination in combinations) {
       for (List<int> candidate in candidateSolutions) {
@@ -386,18 +409,22 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         scoreCount.update(pegScore, (v) => v + 1, ifAbsent: () => 1);
       }
 
-      _max = scoreCount.values.reduce(max);
-      score[combination] = _max;
+      if (scoreCount.isNotEmpty) {
+        _max = scoreCount.values.reduce(max);
+        score[combination] = _max;
+      }
       scoreCount.clear();
     }
 
-    _min = score.values.reduce(min);
+    if (score.isNotEmpty) {
+      _min = score.values.reduce(min);
 
-    score.forEach((key, value) {
-      if (value == _min) {
-        nextGuesses.add(key);
-      }
-    });
+      score.forEach((key, value) {
+        if (value == _min) {
+          nextGuesses.add(key);
+        }
+      });
+    }
 
     return nextGuesses;
   }
