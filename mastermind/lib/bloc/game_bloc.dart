@@ -17,6 +17,9 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     4
   ]; // Assuming colors are represented by integers 0-4
   GameBloc() : super(GameState()) {
+    on<SetSolutionSet>((event, emit) {
+      emit(state.copyWith(solutionSet: event.solutionSet));
+    });
     on<ComputerTurnEvent>((event, emit) async {
       // Implement the logic for the computer's turn
       try {
@@ -26,10 +29,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       }
 
       emit(state.copyWith(gameOver: true));
+      emit(GameState());
     });
 
     on<SetCode>((event, emit) {
-      emit(state.copyWith(solution: event.code));
+      emit(state.copyWith(solution: event.code, solutionSet: true));
     });
 
     on<SetSwitchPlayers>((event, emit) {
@@ -128,14 +132,29 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         if (newCurrentGuess.join() == state.solution.join()) {
           // Handle the win condition
           Guesser newGuesser;
-          int player1Score = 0;
-          int player2Score = 0;
+          int player1Score = state.player1Score;
+          int player2Score = state.player2Score;
           if (state.guesser == Guesser.player1) {
             newGuesser = Guesser.player2;
             player1Score = state.guesses.length;
           } else {
             newGuesser = Guesser.player1;
             player2Score = state.guesses.length;
+          }
+          if (player1Score != -1 && player2Score != -1) {
+            emit(state.copyWith(
+              guesses: [],
+              currentGuess: [],
+              feedback: [],
+              currentFeedback: [],
+              guesser: newGuesser,
+              switchPlayers: state.mode == GameMode.computer ? true : false,
+              player1Score: player1Score,
+              player2Score: player2Score,
+              gameOver: true,
+            ));
+            emit(GameState());
+            return;
           }
           emit(state.copyWith(
             guesses: [],

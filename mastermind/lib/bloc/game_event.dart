@@ -41,3 +41,9 @@ class AddColourToFeedback extends GameEvent {
 }
 
 class SubmitFeedback extends GameEvent {}
+
+class SetSolutionSet extends GameEvent {
+  final bool solutionSet;
+
+  SetSolutionSet(this.solutionSet);
+}

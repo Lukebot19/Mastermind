@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mastermind/bloc/game_bloc.dart';
 import 'package:mastermind/enums/mode.dart';
+import 'package:mastermind/pages/choose_code.dart';
 import 'package:mastermind/pages/game.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -10,7 +11,10 @@ class ModeSelectionPage extends StatelessWidget {
     return BlocProvider(
       create: (context) => GameBloc(),
       child: Scaffold(
-        appBar: AppBar(title: Text('Select Game Mode')),
+        appBar: AppBar(
+          title: Text('Select Game Mode'),
+          automaticallyImplyLeading: false,
+        ),
         body: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
@@ -25,17 +29,33 @@ class ModeSelectionPage extends StatelessWidget {
               child: Text('Play Against Computer'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => GamePage(mode: GameMode.local))),
+              onPressed: () => {
+                context.read<GameBloc>().add(StartGame(GameMode.local)),
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => ColorLockPage())),
+              },
               child: Text('Play Locally'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => GamePage(mode: GameMode.online))),
+              onPressed: () => {
+                context.read<GameBloc>().add(StartGame(GameMode.online)),
+                showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('Coming Soon'),
+                        content: Text('Online mode is not yet available'),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: Text('OK'),
+                          ),
+                        ],
+                      );
+                    }),
+              },
               child: Text('Play Online'),
             ),
           ],

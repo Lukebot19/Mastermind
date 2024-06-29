@@ -24,11 +24,6 @@ class _GamePageState extends State<GamePage> {
     Colors.purple,
   ];
 
-  final List<Color> feedbackColours = [
-    Colors.black,
-    Colors.white,
-  ];
-
   @override
   Widget build(BuildContext context) {
     return BlocListener<GameBloc, GameState>(
@@ -50,12 +45,7 @@ class _GamePageState extends State<GamePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => ColorLockPage()),
-                      ).then((value) {
-                        // Schedule the ComputerTurnEvent to be dispatched after the widget build is complete
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          context.read<GameBloc>().add(ComputerTurnEvent());
-                        });
-                      });
+                      );
                     },
                     child: Text('OK'),
                   ),
@@ -102,6 +92,19 @@ class _GamePageState extends State<GamePage> {
                   ),
                   child: Column(
                     children: [
+                      if (state.mode == GameMode.local ||
+                          state.mode == GameMode.online)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Text(
+                                state.guesser == Guesser.player1
+                                    ? 'Player 1 Guessing'
+                                    : 'Player 2 Guessing',
+                                style: TextStyle(
+                                    color: Colors.black, fontSize: 26)),
+                          ],
+                        ),
                       Expanded(
                         child: ListView.builder(
                           itemCount: state.guesses.length +
@@ -246,67 +249,34 @@ class _GamePageState extends State<GamePage> {
                           },
                         ),
                       ),
-                      if (state.guesser == Guesser.player2 &&
-                          state.mode != GameMode.computer)
-                        Container(
-                          height: 80,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: feedbackColours.length,
-                            itemBuilder: (context, index) {
-                              return GestureDetector(
-                                onTap: () {
-                                  context
-                                      .read<GameBloc>()
-                                      .add(AddColourToFeedback(index));
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: CircleAvatar(
-                                    backgroundColor: feedbackColours[index],
-                                  ),
+                      Container(
+                        height: 80,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: colorPalette.length,
+                          itemBuilder: (context, index) {
+                            return GestureDetector(
+                              onTap: () {
+                                context
+                                    .read<GameBloc>()
+                                    .add(AddColourToGuess(index));
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: CircleAvatar(
+                                  backgroundColor: colorPalette[index],
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            );
+                          },
                         ),
-                      if (state.guesser == Guesser.player1)
-                        Container(
-                          height: 80,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: colorPalette.length,
-                            itemBuilder: (context, index) {
-                              return GestureDetector(
-                                onTap: () {
-                                  context
-                                      .read<GameBloc>()
-                                      .add(AddColourToGuess(index));
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: CircleAvatar(
-                                    backgroundColor: colorPalette[index],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      if (state.mode != GameMode.computer &&
-                          state.guesser == Guesser.player1)
+                      ),
+                      if (state.mode != GameMode.computer)
                         ElevatedButton(
                             onPressed: () {
                               context.read<GameBloc>().add(SubmitGuess());
                             },
                             child: Text('Confirm Guess')),
-                      if (state.mode != GameMode.computer &&
-                          state.guesser == Guesser.player2)
-                        ElevatedButton(
-                            onPressed: () {
-                              context.read<GameBloc>().add(SubmitGuess());
-                            },
-                            child: Text('Confirm Feeback')),
                       if (state.mode == GameMode.computer &&
                           state.guesser == Guesser.player1)
                         ElevatedButton(
