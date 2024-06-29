@@ -15,50 +15,53 @@ class ModeSelectionPage extends StatelessWidget {
           title: Text('Select Game Mode'),
           automaticallyImplyLeading: false,
         ),
-        body: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            ElevatedButton(
-              onPressed: () => {
-                context.read<GameBloc>().add(StartGame(GameMode.computer)),
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => GamePage(mode: GameMode.computer)))
-              },
-              child: Text('Play Against Computer'),
-            ),
-            ElevatedButton(
-              onPressed: () => {
-                context.read<GameBloc>().add(StartGame(GameMode.local)),
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => ColorLockPage())),
-              },
-              child: Text('Play Locally'),
-            ),
-            ElevatedButton(
-              onPressed: () => {
-                context.read<GameBloc>().add(StartGame(GameMode.online)),
-                showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: Text('Coming Soon'),
-                        content: Text('Online mode is not yet available'),
-                        actions: <Widget>[
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            child: Text('OK'),
-                          ),
-                        ],
-                      );
-                    }),
-              },
-              child: Text('Play Online'),
-            ),
-          ],
+        body: Container(
+          width: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              ElevatedButton(
+                onPressed: () => {
+                  context.read<GameBloc>().add(StartGame(GameMode.computer)),
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => GamePage(mode: GameMode.computer)))
+                },
+                child: Text('Play Against Computer'),
+              ),
+              ElevatedButton(
+                onPressed: () => {
+                  context.read<GameBloc>().add(StartGame(GameMode.local)),
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => ColorLockPage())),
+                },
+                child: Text('Play Locally'),
+              ),
+              ElevatedButton(
+                onPressed: () => {
+                  context.read<GameBloc>().add(StartGame(GameMode.online)),
+                  showDialog(
+                      context: context,
+                      builder: (context) {
+                        return AlertDialog(
+                          title: Text('Coming Soon'),
+                          content: Text('Online mode is not yet available'),
+                          actions: <Widget>[
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: Text('OK'),
+                            ),
+                          ],
+                        );
+                      }),
+                },
+                child: Text('Play Online'),
+              ),
+            ],
+          ),
         ),
       ),
     );
