@@ -24,6 +24,8 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       } catch (e) {
         print(e);
       }
+
+      emit(state.copyWith(gameOver: true));
     });
 
     on<SetCode>((event, emit) {
@@ -126,10 +128,14 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         if (newCurrentGuess.join() == state.solution.join()) {
           // Handle the win condition
           Guesser newGuesser;
+          int player1Score = 0;
+          int player2Score = 0;
           if (state.guesser == Guesser.player1) {
             newGuesser = Guesser.player2;
+            player1Score = state.guesses.length;
           } else {
             newGuesser = Guesser.player1;
+            player2Score = state.guesses.length;
           }
           emit(state.copyWith(
             guesses: [],
@@ -138,7 +144,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
             currentFeedback: [],
             guesser: newGuesser,
             switchPlayers: true,
+            player1Score: player1Score,
+            player2Score: player2Score,
           ));
+          emit(state.copyWith(switchPlayers: false, gameOver: false));
 
           return;
         }
@@ -280,7 +289,10 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       // If the response is four colored pegs, the game is won
       if (responsePegs == 'BBBB') {
         emit(state.copyWith(
-            currentGuess: currentGuess, currentFeedback: [2, 2, 2, 2]));
+          currentGuess: currentGuess,
+          currentFeedback: [2, 2, 2, 2],
+          player2Score: turn,
+        ));
         won = true;
         print('Game Won!');
         return;

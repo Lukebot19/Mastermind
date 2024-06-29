@@ -4,6 +4,7 @@ import 'package:mastermind/bloc/game_bloc.dart';
 import 'package:mastermind/enums/guesser.dart';
 import 'package:mastermind/enums/mode.dart';
 import 'package:mastermind/pages/choose_code.dart';
+import 'package:mastermind/pages/mode_selection.dart';
 
 class GamePage extends StatefulWidget {
   final GameMode mode;
@@ -33,17 +34,57 @@ class _GamePageState extends State<GamePage> {
     return BlocListener<GameBloc, GameState>(
       listener: (context, state) {
         if (state.switchPlayers) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ColorLockPage()),
-          ).then((value) {
-            // Schedule the ComputerTurnEvent to be dispatched after the widget build is complete
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.read<GameBloc>().add(ComputerTurnEvent());
-            });
-          });
           // Reset the switchPlayers flag
           context.read<GameBloc>().add(SetSwitchPlayers());
+          // Show a dialog to show the scores and switch players
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: Text('Correct!'),
+                content: Text('You got it in ${state.player1Score} moves'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ColorLockPage()),
+                      ).then((value) {
+                        // Schedule the ComputerTurnEvent to be dispatched after the widget build is complete
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          context.read<GameBloc>().add(ComputerTurnEvent());
+                        });
+                      });
+                    },
+                    child: Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        } else if (state.gameOver == true) {
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: Text('Game Over'),
+                content: Text(
+                    'Player 1: ${state.player1Score}\nPlayer 2: ${state.player2Score}'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => ModeSelectionPage()));
+                    },
+                    child: Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
         }
       },
       child: BlocBuilder<GameBloc, GameState>(
